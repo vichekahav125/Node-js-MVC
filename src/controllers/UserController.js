@@ -1,40 +1,65 @@
-import User from "../models/User.js";
+import { BaseController } from './BaseController.js';
+import { User } from '../models/User.js';
 
-class UserController {
-  static async getUsers(req, res) {
-    try {
-      const users = await User.findAll();
-      const [firstUser, ...otherUsers] = users;
-      const allUsers = firstUser ? [firstUser, ...otherUsers] : [];
-
-      return res.status(200).json({
-        total: allUsers.length,
-        users: allUsers,
-      });
-    } catch (error) {
-      return res.status(500).json({ message: error.message });
+export class UserController extends BaseController {
+    async getAllUsers(req, res) {
+        try {
+            const users = await User.getAll();
+            await this.success(res, 'Users successfuly', users);
+        } catch (error) {
+            console.error(error);
+            await this.error(res, 'Server Error', 500);
+        }
     }
-  }
 
-  static async create(req, res) {
-    try {
-      const { name, email, ...extraFields } = req.body ?? {};
-
-      if (!name || !email) {
-        return res.status(400).json({
-          message: "name and email are required",
-        });
-      }
-
-      const newUser = await User.create({ name, email, ...extraFields });
-      return res.status(201).json({
-        message: "User created successfully",
-        user: newUser,
-      });
-    } catch (error) {
-      return res.status(500).json({ message: error.message });
+    async getUser(req, res) {
+        try {
+            const user = await User.getById(req.params.id);
+            if (!user) return await this.error(res, 'User not found', 404);
+            await this.success(res, 'User successfully', user);
+        } catch (error) {
+            console.error(error);
+            await this.error(res, 'Server Error', 500);
+        }
     }
-  }
+
+    async createUser(req, res) {
+        try {
+            const { name, email } = req.body;
+            if (!name || !email) {
+                return await this.error(res, 'name and email are required', 400);
+            }
+            const user = await User.create(name, email);
+            await this.success(res, 'User created successfully', user, 201);
+        } catch (error) {
+            console.error(error);
+            await this.error(res, 'Server Error', 500);
+        }
+    }
+
+    async updateUser(req, res) {
+        try {
+            const { name, email } = req.body;
+            if (!name || !email) {
+                return await this.error(res, 'name and email are required', 400);
+            }
+            const user = await User.update(req.params.id, name, email);
+            if (!user) return await this.error(res, 'User not found', 404);
+            await this.success(res, 'User updated successfully', user);
+        } catch (error) {
+            console.error(error);
+            await this.error(res, 'Server Error', 500);
+        }
+    }
+
+    async deleteUser(req, res) {
+        try {
+            const deleted = await User.delete(req.params.id);
+            if (!deleted) return await this.error(res, 'User not found', 404);
+            await this.success(res, 'User deleted successfully', { message: 'User deleted successfully' });
+        } catch (error) {
+            console.error(error);
+            await this.error(res, 'Server Error', 500);
+        }
+    }
 }
-
-export default UserController;
